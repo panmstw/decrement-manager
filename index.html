@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>多項目週期遞減管理器｜自訂標題．獨立週期</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(145deg, #0b1120 0%, #182634 100%);
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            padding: 2rem 1.5rem;
+        }
+
+        /* 主容器 */
+        .app-container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* 頁首 */
+        .header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #FFFFFF, #a0d0ff);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            color: #8aaec0;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        /* 新增項目卡片 */
+        .add-card {
+            background: rgba(20, 28, 38, 0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 2rem;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 1.2rem 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 1rem;
+            justify-content: space-between;
+        }
+
+        .add-field {
+            flex: 2;
+            min-width: 160px;
+        }
+
+        .add-field label {
+            display: block;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #9bb7d0;
+            margin-bottom: 0.3rem;
+        }
+
+        .add-field input, .add-field select {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 1.5rem;
+            padding: 0.7rem 1rem;
+            color: white;
+            font-size: 0.9rem;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        .add-field input:focus, .add-field select:focus {
+            border-color: #4fc3f7;
+        }
+
+        .create-btn {
+            background: #2c4b6e;
+            border: none;
+            border-radius: 2rem;
+            padding: 0.7rem 1.8rem;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .create-btn:hover {
+            background: #3e6a94;
+            transform: scale(0.98);
+        }
+
+        /* 項目網格 */
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 1.6rem;
+        }
+
+        /* 個別項目卡片 (毛玻璃) */
+        .item-card {
+            background: rgba(18, 26, 36, 0.75);
+            backdrop-filter: blur(16px);
+            border-radius: 2rem;
+            border: 1px solid rgba(255,255,255,0.12);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .item-header {
+            padding: 1rem 1.2rem 0.5rem 1.2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .item-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff, #b9e0ff);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            word-break: break-word;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .icon-btn {
+            background: rgba(255,255,255,0.08);
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 30px;
+            font-size: 1rem;
+            cursor: pointer;
+            color: #ccdeee;
+            transition: 0.15s;
+        }
+
+        .icon-btn:hover {
+            background: rgba(255,100,100,0.4);
+            color: white;
+        }
+
+        .edit-title-btn {
+            background: rgba(79, 195, 247, 0.2);
+        }
+        .edit-title-btn:hover {
+            background: rgba(79, 195, 247, 0.5);
+        }
+
+        /* 週期徽章 */
+        .period-badge {
+            display: inline-block;
+            background: rgba(0,0,0,0.5);
+            padding: 0.2rem 0.8rem;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #c3e2fc;
+            margin: 0.8rem 1.2rem 0;
+            width: fit-content;
+        }
+
+        /* 主數字區 */
+        .number-area {
+            text-align: center;
+            padding: 1.2rem 0.5rem 0.8rem;
+        }
+
+        .big-number {
+            font-size: 3.4rem;
+            font-weight: 800;
+            font-family: monospace;
+            background: linear-gradient(145deg, #ffffff, #b9defa);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            line-height: 1;
+        }
+
+        .countdown-sm {
+            font-size: 0.8rem;
+            color: #aac2d9;
+            margin-top: 0.3rem;
+        }
+
+        .progress-sm {
+            margin: 0.5rem 1rem;
+        }
+
+        .progress-bar-bg-sm {
+            background: rgba(0,0,0,0.5);
+            border-radius: 20px;
+            height: 4px;
+        }
+
+        .progress-fill-sm {
+            width: 0%;
+            height: 4px;
+            background: linear-gradient(90deg, #4fc3f7, #9f7aea);
+            border-radius: 20px;
+            transition: width 0.2s;
+        }
+
+        /* 設定區域 */
+        .settings-area {
+            background: rgba(0, 0, 0, 0.3);
+            margin: 0.8rem 1rem 1rem;
+            border-radius: 1.2rem;
+            padding: 0.8rem;
+        }
+
+        .flex-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.8rem;
+        }
+
+        .flex-row label {
+            font-size: 0.7rem;
+            color: #9bb7d0;
+            flex: 0 0 60px;
+        }
+
+        .custom-input-sm {
+            flex: 2;
+            background: rgba(0,0,0,0.6);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 1.5rem;
+            padding: 0.5rem 0.8rem;
+            color: white;
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .period-select-sm {
+            background: rgba(0,0,0,0.6);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 1.5rem;
+            padding: 0.5rem 0.8rem;
+            color: white;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .action-btn-sm {
+            background: #2c4b6e;
+            border: none;
+            border-radius: 1.5rem;
+            padding: 0.5rem 1rem;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+
+        .reset-btn-sm {
+            background: rgba(120, 90, 140, 0.7);
+        }
+
+        .danger-btn-sm {
+            background: rgba(180, 70, 80, 0.7);
+        }
+
+        .delete-item {
+            background: rgba(200, 70, 80, 0.3);
+            margin: 0rem 1rem 1rem 1rem;
+            width: calc(100% - 2rem);
+            border: none;
+            padding: 0.5rem;
+            border-radius: 2rem;
+            color: #ffb5b0;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+
+        .delete-item:hover {
+            background: rgba(200, 70, 80, 0.6);
+            color: white;
+        }
+
+        .footer-status {
+            text-align: center;
+            margin-top: 2rem;
+            font-size: 0.75rem;
+            color: #6c8eaa;
+        }
+
+        @media (max-width: 650px) {
+            body { padding: 1rem; }
+            .items-grid { grid-template-columns: 1fr; }
+            .big-number { font-size: 2.8rem; }
+            .add-card { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="header">
+        <h1>📋 多項目週期遞減管理器</h1>
+        <p>自訂標題 · 獨立週期 · 各自倒數遞減 · 自動記憶</p>
+    </div>
+
+    <!-- 新增項目區塊 -->
+    <div class="add-card">
+        <div class="add-field">
+            <label>📌 項目名稱</label>
+            <input type="text" id="newItemName" placeholder="例如: 專案截止、合約到期" value="新項目">
+        </div>
+        <div class="add-field">
+            <label>🔢 初始數字</label>
+            <input type="number" id="newItemValue" value="100" step="1">
+        </div>
+        <div class="add-field">
+            <label>⏱️ 遞減週期</label>
+            <select id="newItemPeriod">
+                <option value="day">每日遞減</option>
+                <option value="month">每月遞減</option>
+                <option value="year">每年遞減</option>
+            </select>
+        </div>
+        <button class="create-btn" id="createItemBtn">＋ 新增遞減項目</button>
+    </div>
+
+    <!-- 項目列表網格 -->
+    <div id="itemsGrid" class="items-grid"></div>
+    <div class="footer-status">💾 所有項目自動儲存於瀏覽器 | 每個週期跨過自動減1</div>
+</div>
+
+<script>
+    // ---------- 全域資料結構 ----------
+    let items = [];          // 每個項目 { id, title, currentValue, initialValue, period, lastAnchor }
+
+    // 輔助: 取得特定週期的起點 (Date)
+    function getPeriodStart(period, refDate = new Date()) {
+        const d = new Date(refDate);
+        if (period === 'day') return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        if (period === 'month') return new Date(d.getFullYear(), d.getMonth(), 1);
+        return new Date(d.getFullYear(), 0, 1);
+    }
+
+    function getPeriodEnd(period, refDate = new Date()) {
+        const start = getPeriodStart(period, refDate);
+        if (period === 'day') return new Date(start.getTime() + 86400000);
+        if (period === 'month') return new Date(start.getFullYear(), start.getMonth() + 1, 1);
+        return new Date(start.getFullYear() + 1, 0, 1);
+    }
+
+    // 取得週期進度 (剩餘毫秒,總毫秒)
+    function getPeriodProgress(period, now = new Date()) {
+        const start = getPeriodStart(period, now);
+        const end = getPeriodEnd(period, start);
+        const totalMs = end - start;
+        const elapsedMs = Math.max(0, now - start);
+        const remainingMs = Math.max(0, end - now);
+        return { totalMs, elapsedMs, remainingMs, start, end };
+    }
+
+    // 格式化剩餘時間 (人性化)
+    function formatRemaining(period, remainingMs) {
+        const sec = Math.floor(remainingMs / 1000);
+        const days = Math.floor(sec / 86400);
+        const hours = Math.floor((sec % 86400) / 3600);
+        const mins = Math.floor((sec % 3600) / 60);
+        const secs = sec % 60;
+        if (period === 'day') return `${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+        if (period === 'month') return days > 0 ? `${days}天 ${hours}時` : `${hours}時 ${mins}分`;
+        return days > 0 ? `${days}天 ${hours}時` : `${hours}時 ${mins}分`;
+    }
+
+    function getPeriodChinese(period) {
+        if (period === 'day') return '每日';
+        if (period === 'month') return '每月';
+        return '每年';
+    }
+
+    // 檢查單一項目是否需要遞減 (核心)
+    function checkAndDecrementItem(item) {
+        const now = new Date();
+        const currentStart = getPeriodStart(item.period, now);
+        const lastAnchor = item.lastAnchor ? new Date(item.lastAnchor) : null;
+        if (!lastAnchor) {
+            item.lastAnchor = currentStart.toISOString();
+            return false;
+        }
+        const lastAnchorDate = new Date(lastAnchor);
+        // 如果當前週期起點 > 上次錨點，代表跨越至少一個完整週期
+        if (currentStart.getTime() > lastAnchorDate.getTime()) {
+            if (item.currentValue > 0) {
+                item.currentValue = Math.max(0, item.currentValue - 1);
+            }
+            // 更新錨點至當前週期起點
+            item.lastAnchor = currentStart.toISOString();
+            return true;
+        }
+        return false;
+    }
+
+    // 針對所有項目執行跨週期遞減 (定時與初始化時修復)
+    function applyAllDecrements() {
+        let changed = false;
+        for (let item of items) {
+            if (checkAndDecrementItem(item)) changed = true;
+        }
+        if (changed) {
+            saveToLocal();
+            renderAllItems();
+        }
+    }
+
+    // 修復關閉期間錯過的多個週期 (進階)
+    function repairMissedDecrementsForItem(item) {
+        const now = new Date();
+        let anchor = item.lastAnchor ? new Date(item.lastAnchor) : null;
+        if (!anchor) {
+            item.lastAnchor = getPeriodStart(item.period, now).toISOString();
+            return;
+        }
+        let cyclesPassed = 0;
+        let currentCheck = new Date(anchor);
+        const maxLoop = 500;
+        while (cyclesPassed < maxLoop) {
+            let nextBoundary;
+            if (item.period === 'day') {
+                nextBoundary = new Date(currentCheck.getFullYear(), currentCheck.getMonth(), currentCheck.getDate() + 1);
+            } else if (item.period === 'month') {
+                nextBoundary = new Date(currentCheck.getFullYear(), currentCheck.getMonth() + 1, 1);
+            } else {
+                nextBoundary = new Date(currentCheck.getFullYear() + 1, 0, 1);
+            }
+            if (nextBoundary <= now) {
+                cyclesPassed++;
+                currentCheck = nextBoundary;
+            } else break;
+        }
+        if (cyclesPassed > 0 && item.currentValue > 0) {
+            const dec = Math.min(cyclesPassed, item.currentValue);
+            item.currentValue -= dec;
+            // 更新錨點為最後一個完整週期起點
+            let newAnchor;
+            if (item.period === 'day') newAnchor = new Date(currentCheck.getFullYear(), currentCheck.getMonth(), currentCheck.getDate());
+            else if (item.period === 'month') newAnchor = new Date(currentCheck.getFullYear(), currentCheck.getMonth(), 1);
+            else newAnchor = new Date(currentCheck.getFullYear(), 0, 1);
+            item.lastAnchor = newAnchor.toISOString();
+        } else if (cyclesPassed > 0 && item.currentValue === 0) {
+            let newAnchor;
+            if (item.period === 'day') newAnchor = new Date(currentCheck.getFullYear(), currentCheck.getMonth(), currentCheck.getDate());
+            else if (item.period === 'month') newAnchor = new Date(currentCheck.getFullYear(), currentCheck.getMonth(), 1);
+            else newAnchor = new Date(currentCheck.getFullYear(), 0, 1);
+            item.lastAnchor = newAnchor.toISOString();
+        }
+    }
+
+    function repairAllMissed() {
+        for (let item of items) {
+            repairMissedDecrementsForItem(item);
+        }
+        saveToLocal();
+        renderAllItems();
+    }
+
+    // 儲存至 localStorage
+    function saveToLocal() {
+        const storeData = {
+            version: 2,
+            items: items.map(item => ({
+                id: item.id,
+                title: item.title,
+                currentValue: item.currentValue,
+                initialValue: item.initialValue,
+                period: item.period,
+                lastAnchor: item.lastAnchor
+            }))
+        };
+        localStorage.setItem('MultiDecrementManager', JSON.stringify(storeData));
+    }
+
+    // 載入資料
+    function loadFromLocal() {
+        const raw = localStorage.getItem('MultiDecrementManager');
+        if (!raw) return false;
+        try {
+            const data = JSON.parse(raw);
+            if (data.items && Array.isArray(data.items)) {
+                items = data.items.map(it => ({
+                    id: it.id,
+                    title: it.title || '未命名',
+                    currentValue: typeof it.currentValue === 'number' ? it.currentValue : 100,
+                    initialValue: typeof it.initialValue === 'number' ? it.initialValue : 100,
+                    period: it.period || 'day',
+                    lastAnchor: it.lastAnchor || null
+                }));
+                return true;
+            }
+        } catch(e) {}
+        return false;
+    }
+
+    // 新增項目
+    function addItem(name, initVal, period) {
+        const newId = Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+        const now = new Date();
+        const anchor = getPeriodStart(period, now).toISOString();
+        const newItem = {
+            id: newId,
+            title: name.trim() === '' ? '未命名' : name,
+            currentValue: initVal,
+            initialValue: initVal,
+            period: period,
+            lastAnchor: anchor
+        };
+        items.push(newItem);
+        saveToLocal();
+        renderAllItems();
+    }
+
+    // 刪除項目
+    function deleteItem(id) {
+        items = items.filter(item => item.id !== id);
+        saveToLocal();
+        renderAllItems();
+    }
+
+    // 編輯標題
+    function editItemTitle(id, newTitle) {
+        const item = items.find(i => i.id === id);
+        if (item) {
+            item.title = newTitle.trim() === '' ? '項目' : newTitle;
+            saveToLocal();
+            renderAllItems();
+        }
+    }
+
+    // 更新數值 / 週期 / 重置
+    function updateItemValue(id, newValue) {
+        const item = items.find(i => i.id === id);
+        if (item && typeof newValue === 'number' && !isNaN(newValue)) {
+            item.currentValue = Math.max(0, newValue);
+            saveToLocal();
+            renderAllItems();
+        }
+    }
+
+    function updateItemInitialAndReset(id, newInitial) {
+        const item = items.find(i => i.id === id);
+        if (item) {
+            let val = parseInt(newInitial, 10);
+            if (isNaN(val)) val = 0;
+            item.initialValue = val;
+            item.currentValue = val;
+            // 重置錨點為目前週期起點
+            const now = new Date();
+            item.lastAnchor = getPeriodStart(item.period, now).toISOString();
+            saveToLocal();
+            renderAllItems();
+        }
+    }
+
+    function changeItemPeriod(id, newPeriod) {
+        const item = items.find(i => i.id === id);
+        if (item && newPeriod !== item.period) {
+            item.period = newPeriod;
+            const now = new Date();
+            item.lastAnchor = getPeriodStart(newPeriod, now).toISOString();
+            saveToLocal();
+            renderAllItems();
+        }
+    }
+
+    function resetItemToInitial(id) {
+        const item = items.find(i => i.id === id);
+        if (item) {
+            item.currentValue = item.initialValue;
+            const now = new Date();
+            item.lastAnchor = getPeriodStart(item.period, now).toISOString();
+            saveToLocal();
+            renderAllItems();
+        }
+    }
+
+    // 渲染全部卡片 (動態)
+    function renderAllItems() {
+        const grid = document.getElementById('itemsGrid');
+        if (!grid) return;
+        if (items.length === 0) {
+            grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:3rem; background:rgba(0,0,0,0.3); border-radius:2rem; color:#8aaec0;">✨ 尚無遞減項目，點擊上方「新增遞減項目」開始 ✨</div>`;
+            return;
+        }
+
+        const now = new Date();
+        let html = '';
+        for (let item of items) {
+            const progress = getPeriodProgress(item.period, now);
+            const remainingMs = progress.remainingMs;
+            const remainText = formatRemaining(item.period, remainingMs);
+            let percent = 0;
+            if (progress.totalMs > 0) percent = (progress.elapsedMs / progress.totalMs) * 100;
+            percent = Math.min(100, Math.max(0, percent));
+            const initialVal = item.initialValue;
+            let valuePercent = initialVal > 0 ? (item.currentValue / initialVal) * 100 : 0;
+            valuePercent = Math.min(100, Math.max(0, valuePercent));
+
+            html += `
+            <div class="item-card" data-id="${item.id}">
+                <div class="item-header">
+                    <div class="item-title" id="title-text-${item.id}">${escapeHtml(item.title)}</div>
+                    <div class="item-actions">
+                        <button class="icon-btn edit-title-btn" onclick="promptEditTitle('${item.id}')">✎</button>
+                        <button class="icon-btn" onclick="deleteItemById('${item.id}')">🗑️</button>
+                    </div>
+                </div>
+                <div class="period-badge">📅 ${getPeriodChinese(item.period)}遞減</div>
+                <div class="number-area">
+                    <div class="big-number" id="number-display-${item.id}">${item.currentValue}</div>
+                    <div class="countdown-sm">🕒 剩餘: ${remainText}</div>
+                </div>
+                <div class="progress-sm">
+                    <div class="progress-bar-bg-sm"><div class="progress-fill-sm" style="width: ${percent}%;"></div></div>
+                    <div style="display:flex; justify-content:space-between; font-size:0.6rem; margin-top:4px; color:#8aaec0;">
+                        <span>週期進度 ${Math.floor(percent)}%</span>
+                        <span>數值剩餘 ${Math.floor(valuePercent)}%</span>
+                    </div>
+                </div>
+                <div class="settings-area">
+                    <div class="flex-row">
+                        <label>🎯 當前值</label>
+                        <input type="number" id="edit-val-${item.id}" class="custom-input-sm" value="${item.currentValue}" step="1">
+                        <button class="action-btn-sm" onclick="updateValueFromInput('${item.id}')">設定</button>
+                    </div>
+                    <div class="flex-row">
+                        <label>📌 初始值</label>
+                        <input type="number" id="edit-init-${item.id}" class="custom-input-sm" value="${item.initialValue}" step="1">
+                        <button class="action-btn-sm" onclick="updateInitialAndReset('${item.id}')">重置至此</button>
+                    </div>
+                    <div class="flex-row">
+                        <label>⏱️ 週期</label>
+                        <select id="period-select-${item.id}" class="period-select-sm">
+                            <option value="day" ${item.period === 'day' ? 'selected' : ''}>每日遞減</option>
+                            <option value="month" ${item.period === 'month' ? 'selected' : ''}>每月遞減</option>
+                            <option value="year" ${item.period === 'year' ? 'selected' : ''}>每年遞減</option>
+                        </select>
+                        <button class="action-btn-sm" onclick="changePeriodAndSync('${item.id}')">套用</button>
+                        <button class="action-btn-sm reset-btn-sm" onclick="resetItemToInitialById('${item.id}')">↺ 重置數值</button>
+                    </div>
+                </div>
+                <button class="delete-item" onclick="deleteItemById('${item.id}')">🗑 刪除此項目</button>
+            </div>`;
+        }
+        grid.innerHTML = html;
+    }
+
+    // 工具：防XSS
+    function escapeHtml(str) {
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+            return c;
+        });
+    }
+
+    // 全域函數供onclick使用
+    window.deleteItemById = function(id) {
+        deleteItem(id);
+    };
+    window.promptEditTitle = function(id) {
+        const item = items.find(i => i.id === id);
+        if (item) {
+            const newTitle = prompt('請輸入新標題', item.title);
+            if (newTitle !== null) editItemTitle(id, newTitle);
+        }
+    };
+    window.updateValueFromInput = function(id) {
+        const input = document.getElementById(`edit-val-${id}`);
+        if (input) {
+            let newVal = parseInt(input.value, 10);
+            if (isNaN(newVal)) newVal = 0;
+            updateItemValue(id, newVal);
+        }
+    };
+    window.updateInitialAndReset = function(id) {
+        const inputInit = document.getElementById(`edit-init-${id}`);
+        if (inputInit) {
+            let initVal = parseInt(inputInit.value, 10);
+            if (isNaN(initVal)) initVal = 0;
+            updateItemInitialAndReset(id, initVal);
+        }
+    };
+    window.changePeriodAndSync = function(id) {
+        const select = document.getElementById(`period-select-${id}`);
+        if (select) {
+            changeItemPeriod(id, select.value);
+        }
+    };
+    window.resetItemToInitialById = function(id) {
+        resetItemToInitial(id);
+    };
+
+    // 每秒定時器：檢查所有項目遞減 & 重新渲染 (即時更新倒數)
+    let intervalId = null;
+    function startGlobalTimer() {
+        if (intervalId) clearInterval(intervalId);
+        intervalId = setInterval(() => {
+            let needsRender = false;
+            for (let item of items) {
+                if (checkAndDecrementItem(item)) needsRender = true;
+            }
+            if (needsRender) {
+                saveToLocal();
+                renderAllItems();
+            } else {
+                // 僅更新倒數字串（不需要重新渲染全部，但為了倒數時間更新我們重新渲染較簡便且一致）
+                renderAllItems();
+            }
+        }, 1000);
+    }
+
+    // 初始化載入 + 修復跨期
+    function init() {
+        const loaded = loadFromLocal();
+        if (!loaded || items.length === 0) {
+            // 示範預設兩個項目
+            const now = new Date();
+            items = [
+                {
+                    id: 'demo1',
+                    title: '📁 合約到期日',
+                    currentValue: 45,
+                    initialValue: 45,
+                    period: 'day',
+                    lastAnchor: getPeriodStart('day', now).toISOString()
+                },
+                {
+                    id: 'demo2',
+                    title: '🎯 年度目標',
+                    currentValue: 12,
+                    initialValue: 12,
+                    period: 'month',
+                    lastAnchor: getPeriodStart('month', now).toISOString()
+                }
+            ];
+            saveToLocal();
+        }
+        // 先修復遺漏遞減
+        repairAllMissed();
+        renderAllItems();
+        startGlobalTimer();
+    }
+
+    // 綁定新增按鈕
+    document.getElementById('createItemBtn').addEventListener('click', () => {
+        const nameInput = document.getElementById('newItemName');
+        const valueInput = document.getElementById('newItemValue');
+        const periodSelect = document.getElementById('newItemPeriod');
+        let name = nameInput.value.trim();
+        if (name === '') name = '新項目';
+        let initNum = parseInt(valueInput.value, 10);
+        if (isNaN(initNum)) initNum = 100;
+        const period = periodSelect.value;
+        addItem(name, initNum, period);
+        nameInput.value = '';
+        valueInput.value = '100';
+    });
+
+    init();
+</script>
+</body>
+</html>
