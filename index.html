@@ -2,681 +2,247 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>電子撲滿 | 桌面應用版 · 固定視窗大小</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>多項目週期遞減器</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body {
+            background: linear-gradient(145deg, #0b1120 0%, #182634 100%);
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+            padding: 1rem;
             min-height: 100vh;
-            background: linear-gradient(145deg, #eef2f9 0%, #d9e2ef 100%);
+        }
+        .app-container { max-width: 600px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 1.5rem; }
+        .header h1 { font-size: 1.8rem; background: linear-gradient(135deg,#FFF,#9ac8ff); background-clip: text; color: transparent; }
+        .header p { color: #8aaec0; font-size: 0.8rem; }
+        .add-card {
+            background: rgba(20,28,38,0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 1.8rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
             display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 1.5rem;
-        }
-
-        /* 主要卡片 — 在電腦上固定視窗大小 (寬度固定，高度自然但限制最大高度) */
-        .piggy-card {
-            width: 100%;
-            max-width: 520px;         /* 手機優先保持最大寬度 */
-            background: rgba(255, 255, 255, 0.96);
-            backdrop-filter: blur(2px);
-            border-radius: 2.5rem;
-            box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0,0,0,0.05);
-            overflow: hidden;
-            transition: all 0.2s ease;
-            /* 讓卡片在桌面上有固定感 */
-            margin: 0 auto;
-        }
-
-        /* 桌面螢幕 (寬度 >= 640px) 固定視窗大小，更像應用程式 */
-        @media (min-width: 640px) {
-            body {
-                padding: 2rem;
-                background: #cbdbe6;  /* 穩重的桌面背景色 */
-            }
-            .piggy-card {
-                width: 500px;           /* 固定寬度 */
-                max-width: 500px;
-                border-radius: 2rem;
-                box-shadow: 0 30px 50px -20px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255,255,240,0.2);
-            }
-            /* 交易紀錄區塊固定最大高度，確保整體卡片不超出合理範圍 */
-            .transaction-list {
-                max-height: 280px;
-                overflow-y: auto;
-            }
-        }
-
-        /* 較大桌面可選擇稍微放大但維持固定寬度，更像視窗 */
-        @media (min-width: 1024px) {
-            .piggy-card {
-                width: 520px;
-                max-width: 520px;
-            }
-        }
-
-        /* 撲滿頭部 icon + 餘額 */
-        .hero-section {
-            background: linear-gradient(135deg, #243b4a 0%, #1b2c38 100%);
-            padding: 1.8rem 1.8rem 1.5rem 1.8rem;
-            text-align: center;
-            color: white;
-            border-bottom-left-radius: 1.8rem;
-            border-bottom-right-radius: 1.8rem;
-            position: relative;
-        }
-
-        .pig-icon {
-            font-size: 3.8rem;
-            filter: drop-shadow(0 8px 8px rgba(0,0,0,0.2));
-            margin-bottom: 0.3rem;
-        }
-
-        .balance-label {
-            font-weight: 500;
-            letter-spacing: 1px;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            opacity: 0.8;
-            margin-bottom: 0.4rem;
-        }
-
-        .balance-amount {
-            font-size: 3rem;
-            font-weight: 800;
-            background: rgba(255,255,245,0.12);
-            display: inline-block;
-            padding: 0.2rem 1rem;
-            border-radius: 60px;
-            backdrop-filter: blur(4px);
-            font-family: monospace;
-            letter-spacing: 2px;
-        }
-
-        .currency {
-            font-size: 1.4rem;
-            font-weight: 500;
-            margin-right: 4px;
-        }
-
-        /* 控制區塊雙欄 (電腦上並排，固定寬度內置) */
-        .action-grid {
-            padding: 1.5rem 1.5rem;
-            display: flex;
-            flex-direction: row;
-            gap: 1.2rem;
             flex-wrap: wrap;
+            gap: 0.6rem;
         }
-
-        .action-card {
-            flex: 1;
-            background: #ffffff;
-            border-radius: 1.5rem;
-            padding: 1rem 0.9rem 1.2rem;
-            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.04);
-            transition: transform 0.2s, box-shadow 0.2s;
-            border: 1px solid rgba(0,0,0,0.02);
-        }
-
-        .action-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.08);
-        }
-
-        .action-title {
-            font-weight: 700;
-            font-size: 1.1rem;
-            margin-bottom: 0.8rem;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            color: #1e2f3e;
-            border-left: 4px solid #ffb347;
-            padding-left: 0.6rem;
-        }
-
-        .input-group {
-            margin-bottom: 0.9rem;
-        }
-
-        .input-group label {
-            display: block;
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            color: #5f6c7a;
-            margin-bottom: 0.2rem;
-            letter-spacing: 0.5px;
-        }
-
-        .input-group input {
+        .add-field { flex: 1; min-width: 120px; }
+        .add-field input, .add-field select {
             width: 100%;
-            padding: 0.6rem 0.7rem;
-            border: 1px solid #e2e8f0;
-            border-radius: 1.2rem;
-            font-size: 0.85rem;
-            font-weight: 500;
-            transition: all 0.2s;
-            background: #fafcff;
-        }
-
-        .input-group input:focus {
-            outline: none;
-            border-color: #ffb347;
-            box-shadow: 0 0 0 3px rgba(255, 180, 71, 0.2);
-        }
-
-        button {
-            width: 100%;
-            background: #2b3b4e;
-            border: none;
-            padding: 0.65rem;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.2);
             border-radius: 2rem;
-            font-weight: 700;
+            padding: 0.6rem 0.8rem;
+            color: white;
             font-size: 0.85rem;
+        }
+        .create-btn {
+            background: #2c4b6e;
+            border: none;
+            border-radius: 2rem;
+            padding: 0 1.2rem;
+            font-weight: bold;
             color: white;
             cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
-            margin-top: 0.2rem;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 8px;
         }
-
-        .btn-deposit {
-            background: #2c7a4d;
+        .items-grid { display: flex; flex-direction: column; gap: 1rem; }
+        .item-card {
+            background: rgba(18,26,36,0.8);
+            backdrop-filter: blur(16px);
+            border-radius: 1.8rem;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 1rem;
         }
-        .btn-deposit:hover {
-            background: #1f5e3a;
-        }
-        .btn-withdraw {
-            background: #b23c1c;
-        }
-        .btn-withdraw:hover {
-            background: #8f2f13;
-        }
-        button:active {
-            transform: scale(0.97);
-        }
-
-        /* 交易紀錄區塊 — 在桌面固定可視高度使整體視窗穩定 */
-        .history-section {
-            padding: 0 1.5rem 1.5rem 1.5rem;
-        }
-        .history-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 0.8rem;
-            flex-wrap: wrap;
-        }
-        .history-header h3 {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #1e2f3e;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .clear-btn {
-            background: none;
+        .item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+        .item-title { font-size: 1.3rem; font-weight: 700; background: linear-gradient(135deg,#fff,#b9e0ff); background-clip: text; color: transparent; }
+        .icon-btn {
+            background: rgba(255,255,255,0.1);
             border: none;
-            color: #8c9aa8;
-            font-size: 0.7rem;
-            font-weight: 500;
-            padding: 0.25rem 0.9rem;
-            margin-top: 0;
-            width: auto;
-            background: #f0f3f8;
-            border-radius: 2rem;
-            transition: all 0.2s;
-        }
-        .clear-btn:hover {
-            background: #e2e8f0;
-            color: #3a4c5e;
-        }
-        .transaction-list {
-            background: #f9fbfe;
-            border-radius: 1.5rem;
-            padding: 0.3rem;
-            max-height: 260px;
-            overflow-y: auto;
-            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.02), 0 2px 6px rgba(0,0,0,0.05);
-        }
-        
-        /* 存入 & 取出 不同底色區分 */
-        .tx-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.8rem 1rem;
-            border-radius: 1.2rem;
-            margin-bottom: 0.5rem;
-            transition: all 0.2s;
-        }
-        .tx-item:last-child {
-            margin-bottom: 0;
-        }
-        
-        /* 存入專屬底色 (淡翠綠) */
-        .tx-deposit-bg {
-            background: rgba(44, 122, 77, 0.12);
-            border-left: 4px solid #2c7a4d;
-        }
-        
-        /* 取出專屬底色 (淡暖橘紅) */
-        .tx-withdraw-bg {
-            background: rgba(178, 60, 28, 0.1);
-            border-left: 4px solid #b23c1c;
-        }
-        
-        .tx-type {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 600;
-            font-size: 0.85rem;
-        }
-        .type-deposit {
-            color: #1f6e43;
-        }
-        .type-withdraw {
-            color: #b23c1c;
-        }
-        .tx-date {
-            font-family: monospace;
-            font-size: 0.68rem;
-            color: #5f6c7a;
-            background: rgba(0,0,0,0.02);
-            padding: 0.2rem 0.5rem;
+            width: 32px;
+            height: 32px;
             border-radius: 30px;
+            font-size: 1rem;
+            cursor: pointer;
+            color: white;
         }
-        .tx-amount {
-            font-weight: 800;
-            font-size: 0.85rem;
-        }
-        .deposit-amount-color {
-            color: #1f8a4c;
-        }
-        .withdraw-amount-color {
-            color: #c23d1a;
-        }
-        .empty-history {
-            text-align: center;
-            padding: 1.8rem;
-            color: #9aaebf;
-            font-size: 0.8rem;
-            font-weight: 500;
-        }
-
-        footer {
-            font-size: 0.6rem;
-            text-align: center;
-            padding: 0.8rem;
-            color: #7e8c9e;
-            border-top: 1px solid #eef2f8;
-            background: #ffffffd9;
-        }
-
-        /* 自定義卷軸讓交易明細美觀 */
-        .transaction-list::-webkit-scrollbar {
-            width: 5px;
-        }
-        .transaction-list::-webkit-scrollbar-track {
-            background: #eef2f8;
-            border-radius: 10px;
-        }
-        .transaction-list::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
-        }
-
-        @media (max-width: 540px) {
-            body { padding: 1rem; }
-            .balance-amount { font-size: 2.2rem; }
-            .action-grid { flex-direction: column; gap: 1rem; }
-            .tx-item { flex-wrap: wrap; gap: 6px; }
-            .tx-date { order: 3; margin-left: auto; }
-            .transaction-list { max-height: 220px; }
-        }
+        .period-badge { display: inline-block; background: rgba(0,0,0,0.5); padding: 0.2rem 0.8rem; border-radius: 30px; font-size: 0.7rem; color: #c3e2fc; margin-bottom: 0.8rem; }
+        .number-area { text-align: center; margin: 0.5rem 0; }
+        .big-number { font-size: 3rem; font-weight: 800; background: linear-gradient(145deg,#fff,#b3dfee); background-clip: text; color: transparent; }
+        .countdown-sm { font-size: 0.75rem; color: #aac2d9; }
+        .progress-sm { margin: 0.5rem 0; }
+        .progress-bar-bg-sm { background: rgba(0,0,0,0.5); border-radius: 20px; height: 4px; }
+        .progress-fill-sm { width: 0%; height: 4px; background: linear-gradient(90deg,#4fc3f7,#9f7aea); border-radius: 20px; }
+        .settings-area { background: rgba(0,0,0,0.3); border-radius: 1.2rem; padding: 0.6rem; margin-top: 0.6rem; }
+        .flex-row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-bottom: 0.6rem; }
+        .flex-row label { font-size: 0.7rem; color: #9bb7d0; width: 55px; }
+        .custom-input-sm { flex: 2; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); border-radius: 1.5rem; padding: 0.4rem 0.6rem; color: white; font-size: 0.8rem; }
+        .period-select-sm { background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); border-radius: 1.5rem; padding: 0.4rem; color: white; }
+        .action-btn-sm { background: #2c4b6e; border: none; border-radius: 1.5rem; padding: 0.4rem 0.9rem; color: white; font-size: 0.7rem; cursor: pointer; }
+        .delete-item { background: rgba(200,70,80,0.3); border: none; border-radius: 2rem; width: 100%; padding: 0.5rem; margin-top: 0.6rem; color: #ffb5b0; font-size: 0.7rem; cursor: pointer; }
+        .footer-status { text-align: center; font-size: 0.7rem; color: #6c8eaa; margin-top: 1.5rem; }
+        button:active { transform: scale(0.96); }
     </style>
 </head>
 <body>
-
-<div class="piggy-card">
-    <div class="hero-section">
-        <div class="pig-icon">🐷💻</div>
-        <div class="balance-label">📌 結餘總額</div>
-        <div class="balance-amount">
-            <span class="currency">$</span><span id="totalBalance">0</span>
-        </div>
-        <div style="font-size: 0.65rem; margin-top: 10px; opacity: 0.75;">電子撲滿 · 桌面固定視窗版</div>
+<div class="app-container">
+    <div class="header">
+        <h1>📋 週期遞減管理器</h1>
+        <p>自訂標題・獨立週期・自動記憶</p>
     </div>
-
-    <div class="action-grid">
-        <!-- 存錢區塊 -->
-        <div class="action-card">
-            <div class="action-title">
-                <span>📥</span> 存錢
-            </div>
-            <div class="input-group">
-                <label>💰 金額 (NTD)</label>
-                <input type="number" id="depositAmount" placeholder="例如: 500" min="1" step="1">
-            </div>
-            <div class="input-group">
-                <label>📅 存錢日期</label>
-                <input type="date" id="depositDate">
-            </div>
-            <button class="btn-deposit" id="depositBtn">
-                <span>➕</span> 存入撲滿
-            </button>
+    <div class="add-card">
+        <div class="add-field"><input type="text" id="newItemName" placeholder="名稱" value="新項目"></div>
+        <div class="add-field"><input type="number" id="newItemValue" value="100"></div>
+        <div class="add-field">
+            <select id="newItemPeriod">
+                <option value="day">每日</option><option value="month">每月</option><option value="year">每年</option>
+            </select>
         </div>
-
-        <!-- 取錢區塊 -->
-        <div class="action-card">
-            <div class="action-title">
-                <span>📤</span> 取錢
-            </div>
-            <div class="input-group">
-                <label>💸 金額 (NTD)</label>
-                <input type="number" id="withdrawAmount" placeholder="例如: 200" min="1" step="1">
-            </div>
-            <div class="input-group">
-                <label>📅 取錢日期</label>
-                <input type="date" id="withdrawDate">
-            </div>
-            <button class="btn-withdraw" id="withdrawBtn">
-                <span>➖</span> 取出扣除
-            </button>
-        </div>
+        <button class="create-btn" id="createItemBtn">＋ 新增</button>
     </div>
-
-    <!-- 交易歷史記錄 (雙色流水帳) -->
-    <div class="history-section">
-        <div class="history-header">
-            <h3>📋 收支明細 <span style="font-size:0.65rem; font-weight:normal;">💚存入｜❤️取出</span></h3>
-            <button class="clear-btn" id="clearHistoryBtn">🗑️ 清除紀錄</button>
-        </div>
-        <div class="transaction-list" id="transactionList">
-            <div class="empty-history">✨ 暫無交易，試著存第一筆錢 ✨</div>
-        </div>
-    </div>
-    <footer>
-        ⚡ 存/取需設定日期 | 不同底色區分收支 | 固定視窗·桌面體驗
-    </footer>
+    <div id="itemsGrid" class="items-grid"></div>
+    <div class="footer-status">💾 自動儲存 | 每個週期結束自動減1</div>
 </div>
-
 <script>
-    // ---------- 資料儲存鍵值 ----------
-    const STORAGE_KEY_BALANCE = 'piggy_balance_desktop';
-    const STORAGE_KEY_TRANSACTIONS = 'piggy_transactions_desktop';
-
-    // ---------- 全域狀態 ----------
-    let currentBalance = 0;
-    let transactions = [];
-
-    // DOM 元素
-    const balanceSpan = document.getElementById('totalBalance');
-    const depositAmountInput = document.getElementById('depositAmount');
-    const depositDateInput = document.getElementById('depositDate');
-    const withdrawAmountInput = document.getElementById('withdrawAmount');
-    const withdrawDateInput = document.getElementById('withdrawDate');
-    const depositBtn = document.getElementById('depositBtn');
-    const withdrawBtn = document.getElementById('withdrawBtn');
-    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
-    const transactionListDiv = document.getElementById('transactionList');
-
-    // 設定預設日期為今天
-    function setDefaultDates() {
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const dd = String(today.getDate()).padStart(2, '0');
-        const todayStr = `${yyyy}-${mm}-${dd}`;
-        if (!depositDateInput.value) depositDateInput.value = todayStr;
-        if (!withdrawDateInput.value) withdrawDateInput.value = todayStr;
+    let items = [];
+    function getPeriodStart(period, ref = new Date()) {
+        let d = new Date(ref);
+        if (period === 'day') return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        if (period === 'month') return new Date(d.getFullYear(), d.getMonth(), 1);
+        return new Date(d.getFullYear(), 0, 1);
     }
-
-    function formatDate(dateStr) {
-        if (!dateStr) return '無日期';
-        const parts = dateStr.split('-');
-        if (parts.length === 3) return `${parts[0]}/${parts[1]}/${parts[2]}`;
-        return dateStr;
+    function getPeriodEnd(period, start) {
+        if (period === 'day') return new Date(start.getTime() + 86400000);
+        if (period === 'month') return new Date(start.getFullYear(), start.getMonth() + 1, 1);
+        return new Date(start.getFullYear() + 1, 0, 1);
     }
-
-    function updateBalanceUI() {
-        balanceSpan.innerText = currentBalance.toLocaleString();
+    function getPeriodProgress(period, now) {
+        let start = getPeriodStart(period, now);
+        let end = getPeriodEnd(period, start);
+        let total = end - start, elapsed = now - start;
+        return { totalMs: total, elapsedMs: elapsed, remainingMs: Math.max(0, end - now) };
     }
-
-    function persistData() {
-        localStorage.setItem(STORAGE_KEY_BALANCE, currentBalance.toString());
-        localStorage.setItem(STORAGE_KEY_TRANSACTIONS, JSON.stringify(transactions));
+    function formatRemaining(period, ms) {
+        let sec = Math.floor(ms / 1000), days = Math.floor(sec / 86400), hours = Math.floor((sec % 86400) / 3600), mins = Math.floor((sec % 3600) / 60);
+        if (period === 'day') return `${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(sec % 60).padStart(2,'0')}`;
+        if (period === 'month') return days > 0 ? `${days}天 ${hours}時` : `${hours}時 ${mins}分`;
+        return days > 0 ? `${days}天 ${hours}時` : `${hours}時 ${mins}分`;
     }
-
-    function renderTransactions() {
-        if (!transactionListDiv) return;
-        
-        if (transactions.length === 0) {
-            transactionListDiv.innerHTML = `<div class="empty-history">🐷 還沒有任何收支紀錄，開始存錢吧！</div>`;
-            return;
+    function checkDecrement(item) {
+        let now = new Date();
+        let curStart = getPeriodStart(item.period, now);
+        let last = item.lastAnchor ? new Date(item.lastAnchor) : null;
+        if (!last) { item.lastAnchor = curStart.toISOString(); return false; }
+        if (curStart.getTime() > last.getTime() && item.currentValue > 0) {
+            item.currentValue = Math.max(0, item.currentValue - 1);
+            item.lastAnchor = curStart.toISOString();
+            return true;
         }
-        
-        const sorted = [...transactions].sort((a,b) => b.timestamp - a.timestamp);
-        
-        const itemsHTML = sorted.map(tx => {
-            const isDeposit = tx.type === 'deposit';
-            const amountFormatted = Number(tx.amount).toLocaleString();
-            const typeText = isDeposit ? '存入' : '取出';
-            const typeClass = isDeposit ? 'type-deposit' : 'type-withdraw';
-            const dateDisplay = tx.date ? formatDate(tx.date) : '未標註日期';
-            const amountColorClass = isDeposit ? 'deposit-amount-color' : 'withdraw-amount-color';
-            const amountSymbol = isDeposit ? '+ ' : '- ';
-            const bgClass = isDeposit ? 'tx-deposit-bg' : 'tx-withdraw-bg';
-            
-            return `
-                <div class="tx-item ${bgClass}">
-                    <div class="tx-type ${typeClass}">
-                        <span>${isDeposit ? '🐖📥' : '🐖📤'}</span>
-                        <span>${typeText}</span>
-                    </div>
-                    <div class="tx-date">📅 ${dateDisplay}</div>
-                    <div class="tx-amount ${amountColorClass}">${amountSymbol}$${amountFormatted}</div>
+        return false;
+    }
+    function repairMissed(item) {
+        let now = new Date();
+        let anchor = item.lastAnchor ? new Date(item.lastAnchor) : null;
+        if (!anchor) { item.lastAnchor = getPeriodStart(item.period, now).toISOString(); return; }
+        let cycles = 0, cur = new Date(anchor);
+        while (cycles < 500) {
+            let next = item.period === 'day' ? new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 1) :
+                      (item.period === 'month' ? new Date(cur.getFullYear(), cur.getMonth() + 1, 1) :
+                      new Date(cur.getFullYear() + 1, 0, 1));
+            if (next <= now) { cycles++; cur = next; } else break;
+        }
+        if (cycles > 0 && item.currentValue > 0) {
+            item.currentValue = Math.max(0, item.currentValue - Math.min(cycles, item.currentValue));
+            let newAnchor = item.period === 'day' ? new Date(cur.getFullYear(), cur.getMonth(), cur.getDate()) :
+                            (item.period === 'month' ? new Date(cur.getFullYear(), cur.getMonth(), 1) :
+                            new Date(cur.getFullYear(), 0, 1));
+            item.lastAnchor = newAnchor.toISOString();
+        } else if (cycles > 0 && item.currentValue === 0) {
+            let newAnchor = item.period === 'day' ? new Date(cur.getFullYear(), cur.getMonth(), cur.getDate()) :
+                            (item.period === 'month' ? new Date(cur.getFullYear(), cur.getMonth(), 1) :
+                            new Date(cur.getFullYear(), 0, 1));
+            item.lastAnchor = newAnchor.toISOString();
+        }
+    }
+    function save() { localStorage.setItem('decrement_items', JSON.stringify(items)); }
+    function load() {
+        let raw = localStorage.getItem('decrement_items');
+        if (raw) { try { items = JSON.parse(raw); } catch(e){} }
+        if (!items.length) items = [
+            { id: '1', title: '📁 專案倒數', currentValue: 30, initialValue: 30, period: 'day', lastAnchor: getPeriodStart('day', new Date()).toISOString() },
+            { id: '2', title: '🎯 年度目標', currentValue: 8, initialValue: 8, period: 'month', lastAnchor: getPeriodStart('month', new Date()).toISOString() }
+        ];
+        items.forEach(i => repairMissed(i));
+        save();
+    }
+    function render() {
+        let grid = document.getElementById('itemsGrid');
+        if (!items.length) { grid.innerHTML = '<div style="text-align:center;padding:2rem;">✨ 點擊「新增」建立項目 ✨</div>'; return; }
+        let now = new Date();
+        grid.innerHTML = items.map(item => {
+            let prog = getPeriodProgress(item.period, now);
+            let remainText = formatRemaining(item.period, prog.remainingMs);
+            let periodPercent = prog.totalMs > 0 ? (prog.elapsedMs / prog.totalMs) * 100 : 0;
+            let valuePercent = item.initialValue > 0 ? (item.currentValue / item.initialValue) * 100 : 0;
+            return `<div class="item-card">
+                <div class="item-header"><span class="item-title">${escapeHtml(item.title)}</span>
+                <div><button class="icon-btn" onclick="editTitle('${item.id}')">✎</button>
+                <button class="icon-btn" onclick="delItem('${item.id}')">🗑</button></div></div>
+                <div class="period-badge">📅 ${item.period === 'day' ? '每日' : item.period === 'month' ? '每月' : '每年'}遞減</div>
+                <div class="number-area"><div class="big-number">${item.currentValue}</div>
+                <div class="countdown-sm">🕒 剩餘 ${remainText}</div></div>
+                <div class="progress-sm"><div class="progress-bar-bg-sm"><div class="progress-fill-sm" style="width: ${Math.min(100,periodPercent)}%;"></div></div>
+                <div style="display:flex;justify-content:space-between;font-size:0.6rem;"><span>週期進度 ${Math.floor(periodPercent)}%</span><span>數值剩餘 ${Math.floor(valuePercent)}%</span></div></div>
+                <div class="settings-area">
+                    <div class="flex-row"><label>🎯 當前值</label><input type="number" id="val_${item.id}" class="custom-input-sm" value="${item.currentValue}"><button class="action-btn-sm" onclick="setValue('${item.id}')">設定</button></div>
+                    <div class="flex-row"><label>📌 初始值</label><input type="number" id="init_${item.id}" class="custom-input-sm" value="${item.initialValue}"><button class="action-btn-sm" onclick="setInit('${item.id}')">重置至此</button></div>
+                    <div class="flex-row"><label>⏱️ 週期</label><select id="period_${item.id}" class="period-select-sm"><option value="day" ${item.period==='day'?'selected':''}>每日</option><option value="month" ${item.period==='month'?'selected':''}>每月</option><option value="year" ${item.period==='year'?'selected':''}>每年</option></select><button class="action-btn-sm" onclick="changePeriod('${item.id}')">套用</button>
+                    <button class="action-btn-sm" onclick="resetVal('${item.id}')">↺ 重置數值</button></div>
                 </div>
-            `;
+                <button class="delete-item" onclick="delItem('${item.id}')">刪除此項目</button>
+            </div>`;
         }).join('');
-        
-        transactionListDiv.innerHTML = itemsHTML;
     }
-
-    function addTransaction(type, amount, dateStr) {
-        if (!dateStr || dateStr.trim() === "") {
-            const today = new Date();
-            const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0');
-            const dd = String(today.getDate()).padStart(2, '0');
-            dateStr = `${yyyy}-${mm}-${dd}`;
-        }
-        
-        const transaction = {
-            type: type,
-            amount: Number(amount),
-            date: dateStr,
-            timestamp: Date.now()
-        };
-        transactions.push(transaction);
-        renderTransactions();
-        persistData();
+    function escapeHtml(s) { return s.replace(/[&<>]/g, function(c){ if(c==='&')return '&amp;'; if(c==='<')return '&lt;'; return '&gt;'; }); }
+    window.editTitle = function(id) {
+        let item = items.find(i => i.id === id);
+        if (item) { let newTitle = prompt('新標題', item.title); if (newTitle) { item.title = newTitle; save(); render(); } }
+    };
+    window.delItem = function(id) { items = items.filter(i => i.id !== id); save(); render(); };
+    window.setValue = function(id) {
+        let input = document.getElementById(`val_${id}`);
+        if (input) { let v = parseInt(input.value); if (!isNaN(v)) { let item = items.find(i=>i.id===id); if(item){ item.currentValue = Math.max(0,v); save(); render(); } } }
+    };
+    window.setInit = function(id) {
+        let input = document.getElementById(`init_${id}`);
+        if (input) { let v = parseInt(input.value); if (!isNaN(v)) { let item = items.find(i=>i.id===id); if(item){ item.initialValue = v; item.currentValue = v; let now = new Date(); item.lastAnchor = getPeriodStart(item.period, now).toISOString(); save(); render(); } } }
+    };
+    window.changePeriod = function(id) {
+        let sel = document.getElementById(`period_${id}`);
+        if (sel) { let item = items.find(i=>i.id===id); if(item){ item.period = sel.value; let now = new Date(); item.lastAnchor = getPeriodStart(item.period, now).toISOString(); save(); render(); } }
+    };
+    window.resetVal = function(id) {
+        let item = items.find(i=>i.id===id);
+        if(item){ item.currentValue = item.initialValue; let now = new Date(); item.lastAnchor = getPeriodStart(item.period, now).toISOString(); save(); render(); }
+    };
+    function addItem(name, initVal, period) {
+        let now = new Date();
+        items.push({ id: Date.now()+''+Math.random(), title: name, currentValue: initVal, initialValue: initVal, period: period, lastAnchor: getPeriodStart(period, now).toISOString() });
+        save(); render();
     }
-
-    function handleDeposit() {
-        let amountRaw = depositAmountInput.value.trim();
-        if (amountRaw === "") {
-            alert("請輸入存錢金額 💰");
-            return;
-        }
-        const amount = Number(amountRaw);
-        if (isNaN(amount) || amount <= 0 || !Number.isInteger(amount)) {
-            alert("金額必須為正整數 (例如: 100, 250)");
-            return;
-        }
-        
-        let depositDate = depositDateInput.value.trim();
-        if (!depositDate) {
-            const today = new Date();
-            const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0');
-            const dd = String(today.getDate()).padStart(2, '0');
-            depositDate = `${yyyy}-${mm}-${dd}`;
-            depositDateInput.value = depositDate;
-        }
-        
-        currentBalance += amount;
-        updateBalanceUI();
-        addTransaction('deposit', amount, depositDate);
-        depositAmountInput.value = "";
-        showTemporaryMsg(`✅ 存入 $${amount.toLocaleString()} 到撲滿`, '#2c7a4d');
+    document.getElementById('createItemBtn').addEventListener('click', ()=>{
+        let name = document.getElementById('newItemName').value.trim() || '項目';
+        let val = parseInt(document.getElementById('newItemValue').value) || 0;
+        let period = document.getElementById('newItemPeriod').value;
+        addItem(name, val, period);
+        document.getElementById('newItemName').value = '';
+        document.getElementById('newItemValue').value = '100';
+    });
+    function tick() {
+        let changed = false;
+        for (let i of items) if (checkDecrement(i)) changed = true;
+        if (changed) { save(); render(); } else render();
     }
-
-    function handleWithdraw() {
-        let amountRaw = withdrawAmountInput.value.trim();
-        if (amountRaw === "") {
-            alert("請輸入取錢金額 💸");
-            return;
-        }
-        const amount = Number(amountRaw);
-        if (isNaN(amount) || amount <= 0 || !Number.isInteger(amount)) {
-            alert("金額必須為正整數 (例如: 50, 300)");
-            return;
-        }
-        
-        if (amount > currentBalance) {
-            alert(`餘額不足！目前結餘 $${currentBalance.toLocaleString()}，無法取出 $${amount.toLocaleString()}`);
-            return;
-        }
-        
-        let withdrawDate = withdrawDateInput.value.trim();
-        if (!withdrawDate) {
-            const today = new Date();
-            const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0');
-            const dd = String(today.getDate()).padStart(2, '0');
-            withdrawDate = `${yyyy}-${mm}-${dd}`;
-            withdrawDateInput.value = withdrawDate;
-        }
-        
-        currentBalance -= amount;
-        updateBalanceUI();
-        addTransaction('withdraw', amount, withdrawDate);
-        withdrawAmountInput.value = "";
-        showTemporaryMsg(`🔽 取出 $${amount.toLocaleString()}，已扣除餘額`, '#b23c1c');
-    }
-    
-    let toastTimeout = null;
-    function showTemporaryMsg(message, colorHint) {
-        let toast = document.getElementById('dynamicToast');
-        if (!toast) {
-            toast = document.createElement('div');
-            toast.id = 'dynamicToast';
-            toast.style.position = 'fixed';
-            toast.style.bottom = '24px';
-            toast.style.left = '50%';
-            toast.style.transform = 'translateX(-50%)';
-            toast.style.backgroundColor = '#1e2f3e';
-            toast.style.color = 'white';
-            toast.style.padding = '8px 18px';
-            toast.style.borderRadius = '40px';
-            toast.style.fontSize = '0.8rem';
-            toast.style.fontWeight = '600';
-            toast.style.zIndex = '999';
-            toast.style.boxShadow = '0 6px 14px rgba(0,0,0,0.2)';
-            toast.style.backdropFilter = 'blur(8px)';
-            toast.style.background = '#2b3b4ecc';
-            toast.style.pointerEvents = 'none';
-            toast.style.fontFamily = 'inherit';
-            document.body.appendChild(toast);
-        }
-        toast.style.background = colorHint ? `${colorHint}dd` : '#2b3b4ecc';
-        toast.innerText = message;
-        toast.style.opacity = '1';
-        toast.style.transition = 'opacity 0.2s';
-        if (toastTimeout) clearTimeout(toastTimeout);
-        toastTimeout = setTimeout(() => {
-            toast.style.opacity = '0';
-        }, 1800);
-    }
-    
-    function clearHistory() {
-        if (transactions.length === 0) {
-            showTemporaryMsg('📭 目前收支明細已經是空的', '#5f6c7a');
-            return;
-        }
-        const confirmClear = confirm('⚠️ 清除所有收支明細，但會保留目前結餘總額，確定繼續？');
-        if (!confirmClear) return;
-        
-        transactions = [];
-        renderTransactions();
-        persistData();
-        showTemporaryMsg('🧹 收支紀錄已清除，餘額保持不變', '#4a5b6e');
-    }
-    
-    function loadFromStorage() {
-        const savedBalance = localStorage.getItem(STORAGE_KEY_BALANCE);
-        if (savedBalance !== null && !isNaN(parseFloat(savedBalance))) {
-            currentBalance = parseFloat(savedBalance);
-        } else {
-            currentBalance = 0;
-        }
-        
-        const savedTransactions = localStorage.getItem(STORAGE_KEY_TRANSACTIONS);
-        if (savedTransactions) {
-            try {
-                const parsed = JSON.parse(savedTransactions);
-                if (Array.isArray(parsed)) {
-                    transactions = parsed;
-                } else {
-                    transactions = [];
-                }
-            } catch(e) {
-                transactions = [];
-            }
-        } else {
-            transactions = [];
-        }
-        
-        if (currentBalance < 0) currentBalance = 0;
-        updateBalanceUI();
-        renderTransactions();
-    }
-
-    function init() {
-        loadFromStorage();
-        setDefaultDates();
-        
-        depositBtn.addEventListener('click', handleDeposit);
-        withdrawBtn.addEventListener('click', handleWithdraw);
-        clearHistoryBtn.addEventListener('click', clearHistory);
-        
-        window.addEventListener('beforeunload', () => {
-            persistData();
-        });
-        
-        depositAmountInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') handleDeposit();
-        });
-        withdrawAmountInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') handleWithdraw();
-        });
-    }
-    
-    init();
+    load(); render(); setInterval(tick, 1000);
 </script>
 </body>
 </html>
